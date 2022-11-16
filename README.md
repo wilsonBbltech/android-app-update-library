@@ -2,7 +2,7 @@
 
 This library simplifies the process of downloading and installing new version of the app from the internet, that is when you want to add an update functionality for yor app regardless of Google Play update mechanism.
 
-# How to use
+# How to use.
 
 ```java
 
