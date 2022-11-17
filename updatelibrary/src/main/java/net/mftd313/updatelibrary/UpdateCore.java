@@ -67,6 +67,45 @@ final class UpdateCore {
         DownloadManager downloadManager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
         long downloadID = downloadManager.enqueue(request);
         UpdateRepository.getInstance(context).setLastDownloadId(downloadID);
+
+        final ExecutorService executor = Executors.newFixedThreadPool(1);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                int progress = 0;
+                long totalBytes = 0l;
+                boolean isDownloadFinished = false;
+                while (!isDownloadFinished) {
+                    Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(downloadID));
+                    if (cursor.moveToFirst()) {
+                        int downloadStatus = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                        switch (downloadStatus) {
+                            case DownloadManager.STATUS_RUNNING:
+                                totalBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                                if (totalBytes > 0) {
+                                    long downloadedBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                                    System.out.println("so far:"+downloadedBytes);
+                                    progress = (int) (downloadedBytes * 100 / totalBytes);
+                                }
+                                break;
+                            case DownloadManager.STATUS_SUCCESSFUL:
+                                progress = 100;
+                                isDownloadFinished = true;
+                                break;
+                            case DownloadManager.STATUS_PAUSED:
+
+                            case DownloadManager.STATUS_PENDING:
+                                break;
+                            case DownloadManager.STATUS_FAILED:
+                                isDownloadFinished = true;
+                                break;
+                        }
+                    }
+                }
+            }
+        });
+
+
     }
 
     static boolean isDownloadRunning(Context context, Uri uri) {
